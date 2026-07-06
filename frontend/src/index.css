@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cdss-dark: #0f172a;
+  --color-cdss-card: rgba(30, 41, 59, 0.7);
+  --color-cdss-primary: #38bdf8;
+  --color-cdss-accent: #818cf8;
+  --blur-glass: 12px;
+}
+
+/* Base Body Styles */
+body {
+  background-color: var(--color-cdss-dark);
+  color: #e2e8f0; /* text-slate-200 */
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background glowing orbs for the glass effect to refract */
+body::before {
+  content: '';
+  position: fixed;
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+  z-index: -1;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -10%;
+  right: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.15) 0%, transparent 70%);
+  z-index: -1;
+}
+
+/* V4 Custom Utility Class for our Bento Glass Cards */
+@utility glass-panel {
+  background-color: var(--color-cdss-card);
+  backdrop-filter: blur(var(--blur-glass));
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  background-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+}
