@@ -8,11 +8,12 @@ node_modules/
 dist/
 .npm/
 
-# Environment Variables (Keep secrets safe!)
-.env
-
 # MacOS junk (just in case)
 .DS_Store
 
 # Ignore large binaries
 *.jar
+
+# Ignore Environment Variables
+.env
+*.env
