@@ -1,61 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Plus, X, Brain, Activity, CheckCircle2, ShieldAlert, ShieldCheck, Clock, Network } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, CheckCircle, ShieldAlert, X } from 'lucide-react';
+import { login, getDiagnosis } from './services/api';
 
 function App() {
   // --- STATE MANAGEMENT ---
-  const [token, setToken] = useState(null);
-  const [symptomInput, setSymptomInput] = useState('');
-  const [symptoms, setSymptoms] = useState([]);
+  const [symptoms, setSymptoms] = useState([]); // Dynamic symptom array
+  const [inputValue, setInputValue] = useState(""); // Current text in the search bar
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [auditLogs, setAuditLogs] = useState([]);
-  
-  const fetchLogs = async () => {
-    if (!token) return;
-    try {
-      const response = await axios.get('http://127.0.0.1:8000/api/v1/audit/logs', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setAuditLogs(response.data);
-    } catch (err) {
-      console.error("Failed to fetch logs:", err);
-    }
-  };
 
-  // Automatically fetch logs when the token is acquired
+  // --- LIFECYCLE ---
+  // Auto-login the test doctor on load
   useEffect(() => {
-    if (token) fetchLogs();
-  }, [token]);
-
-  // --- 1. SILENT AUTHENTICATION ---
-  // When the app loads, automatically log in to get our JWT
-  useEffect(() => {
-    const fetchToken = async () => {
-      try {
-        const formData = new URLSearchParams();
-        formData.append('username', 'dr_smith');
-        formData.append('password', 'secure_password_123');
-
-        const response = await axios.post('http://127.0.0.1:8000/token', formData, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-        setToken(response.data.access_token);
-      } catch (err) {
-        console.error("Auth failed:", err);
-        setError("Failed to connect to authentication server.");
-      }
-    };
-    fetchToken();
+    login("dr_smith", "secure_password_123")
+      .then(() => console.log("Authenticated successfully."))
+      .catch(err => setError("Authentication failed. Is FastAPI running?"));
   }, []);
 
-  // --- 2. UI LOGIC ---
-  const handleAddSymptom = (e) => {
-    e.preventDefault();
-    if (symptomInput.trim() && !symptoms.includes(symptomInput.trim())) {
-      setSymptoms([...symptoms, symptomInput.trim()]);
-      setSymptomInput('');
+  // --- HANDLERS ---
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && inputValue.trim() !== '') {
+      const newSymptom = inputValue.trim().toLowerCase();
+      // Prevent duplicates
+      if (!symptoms.includes(newSymptom)) {
+        setSymptoms([...symptoms, newSymptom]);
+      }
+      setInputValue(""); // Clear the input bar
     }
   };
 
@@ -63,246 +34,157 @@ function App() {
     setSymptoms(symptoms.filter(s => s !== symptomToRemove));
   };
 
-  // --- 3. THE INFERENCE PIPELINE ---
-  const runInference = async () => {
+  const handleAnalyze = async () => {
     if (symptoms.length === 0) {
-      setError("Please add at least one symptom.");
+      setError("Please enter at least one symptom before analyzing.");
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-
     try {
-      const response = await axios.post(
-        'http://127.0.0.1:8000/api/v1/inference/predict',
-        { symptoms: symptoms },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      setResults(response.data);
-      fetchLogs();
+      const data = await getDiagnosis(symptoms);
+      setResults(data);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.detail || "Failed to reach AI engine.");
-    } finally {
-      setLoading(false);
+      setError("Inference failed. Please check if the symptoms are recognized by the model.");
     }
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 flex flex-col gap-6 font-sans">
+    <div className="max-w-6xl mx-auto p-8">
       
-      {/* HEADER */}
-      <header className="glass-panel p-6 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Activity className="text-cdss-primary w-8 h-8" />
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-wide">Axiom CDSS</h1>
-            <p className="text-xs text-slate-400 mt-1">Clinical Decision Support System</p>
-          </div>
+      {/* Header */}
+      <header className="flex items-center justify-between mb-10">
+        <div>
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+            Neural Nexus CDSS
+          </h1>
+          <p className="text-gray-400 mt-2">Clinical Decision Support Engine</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className={`h-2 w-2 rounded-full ${token ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
-          <span className="text-sm text-slate-300 font-medium">
-            {token ? 'Dr. Smith (Secured)' : 'Connecting...'}
-          </span>
-        </div>
+        <button 
+          onClick={handleAnalyze}
+          disabled={loading || symptoms.length === 0}
+          className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 px-8 py-3 rounded-xl font-semibold transition-all shadow-[0_0_15px_rgba(37,99,235,0.5)] flex items-center gap-2"
+        >
+          <Activity size={20} className={loading ? "animate-spin" : ""} />
+          {loading ? "Processing..." : "Run Inference"}
+        </button>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
-        
-        {/* LEFT COLUMN: INPUT */}
-        <section className="glass-panel p-6 lg:col-span-4 flex flex-col gap-6">
-          <div>
-            <h2 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
-              <Brain className="w-5 h-5 text-cdss-accent" />
-              Patient Intake
-            </h2>
-            <p className="text-sm text-slate-400">Enter clinical observations to generate AI predictions.</p>
-          </div>
-          
-          <div className="flex-1 flex flex-col gap-4">
-            <form onSubmit={handleAddSymptom} className="flex gap-2">
-              <input 
-                type="text" 
-                value={symptomInput}
-                onChange={(e) => setSymptomInput(e.target.value)}
-                placeholder="e.g. Increased thirst..."
-                className="flex-1 bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-cdss-primary transition-colors"
-              />
-              <button 
-                type="submit"
-                className="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-xl border border-slate-700 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-            </form>
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-4 rounded-xl mb-8 flex items-center gap-3 animate-in fade-in duration-300">
+          <ShieldAlert size={20} />
+          {error}
+        </div>
+      )}
 
-            {/* Symptom Chips */}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {symptoms.map((sym, idx) => (
-                <div key={idx} className="bg-cdss-primary/10 border border-cdss-primary/30 text-cdss-primary px-3 py-1.5 rounded-lg text-sm flex items-center gap-2">
-                  {sym}
-                  <button onClick={() => removeSymptom(sym)} className="hover:text-white transition-colors">
-                    <X className="w-4 h-4" />
-                  </button>
+      {/* Symptom Input Panel */}
+      <div className="glass-panel rounded-2xl p-6 mb-8">
+        <h2 className="text-gray-300 font-medium mb-4">Patient Symptoms</h2>
+        
+        {/* Render the selected tags */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {symptoms.map((symptom, idx) => (
+            <span 
+              key={idx} 
+              className="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-3 py-1 rounded-full flex items-center gap-2 text-sm backdrop-blur-sm transition-all hover:bg-blue-500/30"
+            >
+              {symptom}
+              <button 
+                onClick={() => removeSymptom(symptom)}
+                className="hover:text-red-400 transition-colors focus:outline-none flex items-center justify-center"
+                aria-label={`Remove ${symptom}`}
+              >
+                <X size={14} strokeWidth={3} />
+              </button>
+            </span>
+          ))}
+          {symptoms.length === 0 && (
+            <span className="text-gray-500 text-sm italic py-1">No symptoms added yet. Type below and press Enter.</span>
+          )}
+        </div>
+
+        {/* The Input Bar */}
+        <input 
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a symptom (e.g., 'coughing') and press Enter..."
+          className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+        />
+      </div>
+
+      {/* Bento Grid layout - Only shows when we have results */}
+      {results && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          
+          {/* Tile 1: Primary Diagnosis (Spans 1 col) */}
+          <div className="md:col-span-1 glass-panel rounded-3xl p-8 flex flex-col justify-center items-center text-center">
+            <h2 className="text-gray-400 font-medium uppercase tracking-wider text-sm mb-4">AI Prediction</h2>
+            <div className="text-6xl font-black text-white drop-shadow-md">
+              {results.ai_predicted_icd10}
+            </div>
+            
+            {/* Dynamic Confidence indicator */}
+            <div className={`mt-6 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-inner ${
+              results.confidence_score > 0.7 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+            }`}>
+              Confidence: {(results.confidence_score * 100).toFixed(1)}%
+            </div>
+          </div>
+
+          {/* Tile 2: Graph Validated Treatments (Spans 2 cols) */}
+          <div className="md:col-span-2 glass-panel rounded-3xl p-8">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+              <h2 className="text-xl font-semibold text-gray-200">Treatment Pathway</h2>
+              {results.integrity_check && (
+                <span className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full text-sm font-medium shadow-sm">
+                  <CheckCircle size={16} /> Graph Verified
+                </span>
+              )}
+            </div>
+            
+            {results.graph_validated_medications.length > 0 ? (
+              <div className="flex flex-wrap gap-3 mt-6">
+                {results.graph_validated_medications.map((med, idx) => (
+                  <div key={idx} className="bg-slate-800/50 border border-slate-700/50 px-6 py-3 rounded-xl shadow-inner text-lg font-medium text-slate-200">
+                    {med}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 italic mt-4">No verified treatments found in Knowledge Graph.</p>
+            )}
+          </div>
+
+          {/* Tile 3: Explainable AI Breakdown (Spans all 3 cols) */}
+          <div className="md:col-span-3 glass-panel rounded-3xl p-8">
+            <h2 className="text-xl font-semibold text-gray-200 mb-6">Explainability (XAI) Weights</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {Object.entries(results.xai_analysis).map(([symptom, weight]) => (
+                <div key={symptom}>
+                  <div className="flex justify-between text-sm mb-3 text-gray-300 font-medium">
+                    <span className="capitalize">{symptom}</span>
+                    <span className="text-blue-300">{(weight * 100).toFixed(1)}%</span>
+                  </div>
+                  {/* Progress Bar Container */}
+                  <div className="w-full bg-slate-800/80 rounded-full h-3 shadow-inner overflow-hidden border border-slate-700/50">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(56,189,248,0.5)]" 
+                      style={{ width: `${weight * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
               ))}
-              {symptoms.length === 0 && (
-                <span className="text-slate-500 text-sm italic">No symptoms added yet.</span>
-              )}
             </div>
-
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-xl text-sm flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
-            )}
-          </div>
-          
-          <button 
-            onClick={runInference}
-            disabled={loading || !token}
-            className="w-full bg-cdss-primary disabled:bg-slate-700 disabled:text-slate-500 text-slate-900 font-bold py-3 px-4 rounded-xl hover:bg-sky-400 transition-all shadow-lg shadow-sky-500/20 active:scale-95 flex justify-center items-center gap-2"
-          >
-            {loading ? <span className="animate-pulse">Processing...</span> : 'Run AI Inference'}
-          </button>
-        </section>
-
-        {/* RIGHT COLUMN: OUTPUT */}
-        <section className="glass-panel p-6 lg:col-span-8 flex flex-col gap-6">
-          <div className="flex justify-between items-end">
-            <h2 className="text-xl font-semibold text-white">Diagnostic Insights</h2>
-            {results && results.integrity_check && (
-              <span className="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Graph Validated
-              </span>
-            )}
           </div>
 
-          {/* Bento Grid Container */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            {/* 1. ICD-10 Card */}
-            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 flex flex-col justify-center">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Predicted ICD-10</h3>
-              <div className="text-4xl font-bold text-cdss-accent">
-                {results ? results.ai_predicted_icd10 : '--'}
-              </div>
-            </div>
-
-            {/* 2. Confidence Card */}
-            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 flex flex-col justify-center">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">AI Confidence</h3>
-              <div className={`text-4xl font-bold ${results && results.confidence_score > 0.85 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {results ? `${(results.confidence_score * 100).toFixed(1)}%` : '--%'}
-              </div>
-            </div>
-            
-            {/* 3. Treatments Card (Full Width) */}
-            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 md:col-span-2 min-h-[150px]">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Graph-Validated Treatments</h3>
-              <div className="flex gap-2 flex-wrap mt-4">
-                {!results ? (
-                  <span className="px-3 py-1 rounded-lg bg-slate-700/50 text-slate-500 text-sm border border-slate-600/50">Awaiting inference...</span>
-                ) : (
-                  results.graph_validated_medications.map((med, idx) => (
-                    <span key={idx} className="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 text-sm border border-emerald-500/30 font-medium">
-                      {med}
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* 4. NEW: Explainable AI (XAI) Feature Importance Card (Full Width) */}
-            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 md:col-span-2">
-              <h3 className="text-sm font-medium text-slate-400 mb-4 flex items-center gap-2">
-                <Network className="w-4 h-4 text-cdss-accent" />
-                AI Reasoning (Feature Attribution)
-              </h3>
-              
-              {!results || !results.xai_analysis ? (
-                <div className="text-slate-500 text-sm italic">Awaiting inference data to generate explanation...</div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {Object.entries(results.xai_analysis)
-                    .sort(([, a], [, b]) => b - a) // Sort highest weight to lowest
-                    .map(([symptom, weight]) => (
-                    <div key={symptom} className="flex flex-col gap-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-300">{symptom}</span>
-                        <span className="text-cdss-primary font-mono">{(weight * 100).toFixed(1)}%</span>
-                      </div>
-                      <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
-                        <div 
-                          className="bg-cdss-primary h-1.5 rounded-full transition-all duration-1000 ease-out"
-                          style={{ width: `${weight * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-          </div>
-        </section>
-        
-        {/* BOTTOM ROW: AUDIT LOGS */}
-        <section className="glass-panel p-6 lg:col-span-12 flex flex-col gap-4 mt-2">
-          <div className="flex justify-between items-center border-b border-slate-700/50 pb-4">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              HIPAA Audit Trail
-            </h2>
-            <button onClick={fetchLogs} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
-              <Clock className="w-3 h-3" /> Refresh Logs
-            </button>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-400 uppercase bg-slate-900/30">
-                <tr>
-                  <th className="px-4 py-3 rounded-tl-lg">Timestamp</th>
-                  <th className="px-4 py-3">Physician</th>
-                  <th className="px-4 py-3">Symptoms Input</th>
-                  <th className="px-4 py-3">AI Prediction</th>
-                  <th className="px-4 py-3 rounded-tr-lg">Graph Verified</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500 italic">No inference logs found for this session.</td>
-                  </tr>
-                ) : (
-                  auditLogs.map((log) => (
-                    <tr key={log.id} className="border-b border-slate-800 hover:bg-slate-800/30 transition-colors">
-                      <td className="px-4 py-3 text-slate-300 font-mono text-xs">{log.timestamp}</td>
-                      <td className="px-4 py-3 text-cdss-primary font-medium">{log.doctor}</td>
-                      <td className="px-4 py-3 text-slate-400">{log.symptoms.join(", ")}</td>
-                      <td className="px-4 py-3 font-semibold text-cdss-accent">{log.icd10}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs ${log.verified === 'True' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                          {log.verified === 'True' ? 'Verified' : 'Flagged'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+        </div>
+      )}
     </div>
   );
 }
