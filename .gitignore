@@ -13,3 +13,6 @@ dist/
 
 # MacOS junk (just in case)
 .DS_Store
+
+# Ignore large binaries
+*.jar
