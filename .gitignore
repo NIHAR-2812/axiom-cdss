@@ -1,0 +1,15 @@
+# Python Virtual Environment
+venv/
+__pycache__/
+*.pyc
+
+# Node/React Dependencies
+node_modules/
+dist/
+.npm/
+
+# Environment Variables (Keep secrets safe!)
+.env
+
+# MacOS junk (just in case)
+.DS_Store
