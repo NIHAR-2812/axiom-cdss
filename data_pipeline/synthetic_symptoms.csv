@@ -1,0 +1,18 @@
+symptom_id,name,icd_10_code
+0b57867a-958a-48bc-a49b-8cfa7ae5f438,Increased thirst,E11.9
+c8091047-ac97-415a-9f66-ddfd110b1ff6,Frequent urination,E11.9
+40ed4443-88c3-491a-b9b2-0d145a6925bc,Fatigue,E11.9
+ab3e86d2-de05-404f-b4d5-9355e12a7ac5,Headache,I10
+cf62b20d-b907-48b4-a9b3-b16f23359b32,Shortness of breath,I10
+1de9e7d8-46fb-47b9-b871-b772fd92fc1d,Nosebleeds,I10
+67166245-2dfb-4609-aef7-a1744157ef86,Wheezing,J45.909
+15f40525-ab2a-41f3-b61b-5f41acc969a9,Chest tightness,J45.909
+f8596234-07f0-415d-8830-c11bfdf40294,Coughing,J45.909
+fb185ea6-ba65-462e-b3b9-ddb42028fae7,Chest pain,E78.5
+48b06199-e7a6-4d97-867f-45b1113aa57a,Xanthomas,E78.5
+d8ccbffd-29f0-42e0-ae59-ae836520b879,Persistent sadness,F32.9
+7a666b28-90e8-42bb-b5d3-6190de5a7603,Loss of interest,F32.9
+00f59000-d16f-4f71-99fa-94c64ca742ac,Insomnia,F32.9
+bfe9a002-3fe4-4848-822d-1f9945030338,Angina,I25.10
+59a07953-e77e-4a05-854d-17680551afc7,Cold sweats,I25.10
+fe59917a-33e4-432e-85ff-851d8957d39d,Dizziness,I25.10

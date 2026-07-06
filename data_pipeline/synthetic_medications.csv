@@ -1,0 +1,13 @@
+medication_id,name,icd_10_code
+5843b254-1ac4-4d63-9f47-0b5706f715b5,Metformin,E11.9
+3aad9da2-06ea-471c-a730-7a5bf1c52ccb,Insulin glargine,E11.9
+2bf9955a-043d-4cb5-8c68-c479235d52a0,Lisinopril,I10
+035d8050-3de8-445a-8da3-9e4681684e86,Amlodipine,I10
+eff04636-f0f6-4929-bdc2-c38cd22f3f6b,Albuterol,J45.909
+5eea7d34-7fa7-43a1-a549-0b249500c9f7,Fluticasone,J45.909
+33cdff65-0d7e-43b9-a324-4cd1d7f6402c,Atorvastatin,E78.5
+d829437b-be9e-4288-896b-6743fbd2e5b1,Simvastatin,E78.5
+561a1ff5-706a-4600-8d50-f318c7e0a75b,Sertraline,F32.9
+3cb27b5a-99af-423e-94c7-43e39dd3847a,Fluoxetine,F32.9
+8644a556-cc11-43b6-9922-531549924784,Aspirin,I25.10
+d29217f8-37c7-4581-ad45-31554c342ede,Clopidogrel,I25.10
